@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-eb5eb10fadc5053db3d6d8ab7f29c53557023a31",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/InvoiceVerifier.sol": "project/contracts/InvoiceVerifier.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/InvoiceVerifier.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.0;\r\n\r\ncontract InvoiceVerifier {\r\n    // Mapping: OrderID -> Hash\r\n    mapping(string => string) private invoiceHashes;\r\n    \r\n    event InvoiceCreated(string indexed orderId, string invoiceHash);\r\n\r\n    // Ghi hash lên blockchain\r\n    function storeHash(string memory _orderId, string memory _hash) public {\r\n        invoiceHashes[_orderId] = _hash;\r\n        emit InvoiceCreated(_orderId, _hash);\r\n    }\r\n\r\n    // Lấy hash về để kiểm tra\r\n    function getHash(string memory _orderId) public view returns (string memory) {\r\n        return invoiceHashes[_orderId];\r\n    }\r\n}\r\n\r\n"
+      }
+    }
+  }
+}

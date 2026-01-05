@@ -1,0 +1,91 @@
+import hre from "hardhat";
+import { ethers } from "ethers";
+import fs from "fs";
+import path from "path";
+
+async function main() {
+  const orderId = process.env.ORDER_CODE;
+  const hashString = process.env.HASH;
+  const contractAddress = process.env.CONTRACT_ADDR;
+  const privateKey = process.env.PRIVATE_KEY; // BẮT BUỘC
+
+  if (!orderId || !hashString || !contractAddress || !privateKey) {
+    console.error(JSON.stringify({
+      status: "error",
+      message: "Missing required environment variables: ORDER_CODE, HASH, CONTRACT_ADDR, PRIVATE_KEY"
+    }));
+    process.exit(1);
+  }
+
+  // 1. Tạo ethers provider từ Hardhat network
+  // Hardhat network URL thường là http://127.0.0.1:8545 cho localhost
+  const networkUrl = "http://127.0.0.1:8545";
+  const provider = new ethers.JsonRpcProvider(networkUrl);
+
+  // 2. Wallet (SIGNER) – KHÔNG CÓ CÁI NÀY THÌ ĐỪNG MƠ GHI BLOCKCHAIN
+  const wallet = new ethers.Wallet(privateKey, provider);
+
+  // 3. Đọc ABI thủ công
+  // ES modules không có __dirname, dùng import.meta.url
+  // Xử lý URL encoding và Windows path
+  const fileUrl = new URL(import.meta.url);
+  let __filename = fileUrl.pathname;
+  
+  // Decode URL encoding (ví dụ: %E1%BB%8Dc -> ọc)
+  if (process.platform === 'win32') {
+    __filename = decodeURIComponent(__filename);
+    // Fix Windows path: /D:/... -> D:\...
+    __filename = __filename.replace(/^\/([A-Z]:)/, '$1').replace(/\//g, '\\');
+  } else {
+    __filename = decodeURIComponent(__filename);
+  }
+  
+  const __dirname = path.dirname(__filename);
+  const artifactPath = path.join(
+    __dirname,
+    "..",
+    "artifacts",
+    "contracts",
+    "InvoiceVerifier.sol",
+    "InvoiceVerifier.json"
+  );
+
+  // Kiểm tra file có tồn tại không
+  if (!fs.existsSync(artifactPath)) {
+    console.error(JSON.stringify({
+      status: "error",
+      message: `Artifact file not found: ${artifactPath}. Please compile contracts first with 'npx hardhat compile'`
+    }));
+    process.exit(1);
+  }
+
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const abi = artifact.abi;
+
+  // 4. Contract có signer
+  const contract = new ethers.Contract(
+    contractAddress,
+    abi,
+    wallet
+  );
+
+  try {
+    const tx = await contract.storeHash(orderId, hashString);
+    const receipt = await tx.wait();
+
+    console.log(JSON.stringify({
+      status: "success",
+      order_id: orderId,
+      tx_hash: tx.hash,
+      block_number: receipt.blockNumber
+    }));
+  } catch (error: any) {
+    console.error(JSON.stringify({
+      status: "error",
+      message: error.message ?? String(error)
+    }));
+    process.exit(1);
+  }
+}
+
+main();
